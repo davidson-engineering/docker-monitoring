@@ -1,0 +1,50 @@
+version: '3'
+
+
+networks:
+  loki:
+
+services:
+  loki:
+    image: grafana/loki:latest
+    ports:
+      - "3100:3100"
+    volumes:
+      - ./config/loki:/etc/loki
+    command: -config.file=/etc/loki/local-config.yaml
+    networks:
+      - loki
+
+  promtail:
+    image: grafana/promtail:latest
+    volumes:
+      - /var/log:/var/log
+      - ./config/promtail:/etc/promtail
+    command: -config.file=/etc/promtail/local-config.yaml
+    networks:
+      - loki
+
+  telegraf:
+    image: telegraf:latest
+    restart: always
+    volumes:
+      # Mount for telegraf config
+      - ./telegraf.conf:/etc/telegraf/telegraf.conf:ro
+      - /etc/localtime:/etc/localtime:ro #Sync timezone with host    
+    env_file:
+      - .env
+
+  portainer_agent:
+    # Use the portainer/agent Docker image
+    image: portainer/agent:latest
+    volumes:
+      # Mount the host's Docker socket into the container
+      - /var/run/docker.sock:/var/run/docker.sock
+      # Mount the host's Docker volumes into the container
+      - /var/lib/docker/volumes:/var/lib/docker/volumes
+    restart: always
+    ports:
+      - "9001:9001"
+
+volumes:
+  portainer_data:
